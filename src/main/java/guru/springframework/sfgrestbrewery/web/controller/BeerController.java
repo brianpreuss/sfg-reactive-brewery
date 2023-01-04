@@ -22,6 +22,7 @@ import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import guru.springframework.sfgrestbrewery.web.model.BeerPagedList;
 import guru.springframework.sfgrestbrewery.web.model.BeerStyleEnum;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Mono;
 
 /**
  * Created by jt on 2019-04-20.
@@ -63,14 +64,14 @@ public class BeerController {
   }
 
   @GetMapping("beer/{beerId}")
-  public ResponseEntity<BeerDto> getBeerById(
+  public Mono<ResponseEntity<BeerDto>> getBeerById(
       @PathVariable("beerId") final UUID beerId,
       @RequestParam(value = "showInventoryOnHand", required = false) Boolean showInventoryOnHand) {
     if (showInventoryOnHand == null) {
       showInventoryOnHand = false;
     }
 
-    return new ResponseEntity<>(beerService.getById(beerId, showInventoryOnHand), HttpStatus.OK);
+    return Mono.just(ResponseEntity.ok(beerService.getById(beerId, showInventoryOnHand)));
   }
 
   @GetMapping("beerUpc/{upc}")
