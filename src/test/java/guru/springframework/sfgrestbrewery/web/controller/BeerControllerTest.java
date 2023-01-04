@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import guru.springframework.sfgrestbrewery.bootstrap.BeerLoader;
 import guru.springframework.sfgrestbrewery.services.BeerService;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
+import guru.springframework.sfgrestbrewery.web.model.BeerPagedList;
 import lombok.val;
 
 @WebFluxTest(BeerController.class)
@@ -52,15 +54,30 @@ class BeerControllerTest {
   }
 
   @Test
-  @Disabled
   void testListBeers() {
-    fail("Not yet implemented");
+    final val mockedBeerPagedList = new BeerPagedList(List.of(validBeer));
+    given(beerService.listBeers(any(), any(), any(), any())).willReturn(mockedBeerPagedList);
+    webTestClient.get()
+      .uri("/api/v1/beer")
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus()
+      .isOk()
+      .expectBody(BeerPagedList.class)
+      .value(beerPagedList -> beerPagedList.getContent().get(0).getBeerName(), equalTo(validBeer.getBeerName()));
   }
 
   @Test
-  @Disabled
   void testGetBeerByUpc() {
-    fail("Not yet implemented");
+    given(beerService.getByUpc(validBeer.getUpc())).willReturn(validBeer);
+    webTestClient.get()
+      .uri("/api/v1/beerUpc/{upc}", validBeer.getUpc())
+      .accept(MediaType.APPLICATION_JSON)
+      .exchange()
+      .expectStatus()
+      .isOk()
+      .expectBody(BeerDto.class)
+      .value(BeerDto::getBeerName, equalTo(validBeer.getBeerName()));
   }
 
   @Test
