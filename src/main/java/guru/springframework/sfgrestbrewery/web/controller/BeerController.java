@@ -3,7 +3,6 @@ package guru.springframework.sfgrestbrewery.web.controller;
 import java.util.UUID;
 
 import org.springframework.data.domain.PageRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -80,29 +79,30 @@ public class BeerController {
   }
 
   @PostMapping(path = "beer")
-  public ResponseEntity<Void> saveNewBeer(@RequestBody @Validated final BeerDto beerDto) {
+  public Mono<ResponseEntity<Void>> saveNewBeer(@RequestBody @Validated final BeerDto beerDto) {
     final var savedBeer = beerService.saveNewBeer(beerDto);
 
-    return ResponseEntity
-      .created(
+    return Mono.just(
+      ResponseEntity.created(
         UriComponentsBuilder.fromHttpUrl("http://api.springframework.guru/api/v1/beer/" + savedBeer.getId().toString())
           .build()
           .toUri()
-      )
-      .build();
+      ).build()
+    );
   }
 
   @PutMapping("beer/{beerId}")
-  public ResponseEntity<BeerDto> updateBeerById(
+  public Mono<ResponseEntity<BeerDto>> updateBeerById(
       @PathVariable("beerId") final UUID beerId,
       @RequestBody @Validated final BeerDto beerDto) {
-    return new ResponseEntity<>(beerService.updateBeer(beerId, beerDto), HttpStatus.NO_CONTENT);
+    beerService.updateBeer(beerId, beerDto);
+    return Mono.just(ResponseEntity.noContent().build());
   }
 
   @DeleteMapping("beer/{beerId}")
-  public ResponseEntity<Void> deleteBeerById(@PathVariable("beerId") final UUID beerId) {
+  public Mono<ResponseEntity<Void>> deleteBeerById(@PathVariable("beerId") final UUID beerId) {
     beerService.deleteBeerById(beerId);
 
-    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    return Mono.just(ResponseEntity.noContent().build());
   }
 }
