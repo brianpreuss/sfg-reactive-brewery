@@ -1,0 +1,61 @@
+plugins {
+    id 'java-library'
+    id 'org.springframework.boot' version '3.0.1'
+    id 'io.spring.dependency-management' version '1.1.0'
+    id 'io.freefair.lombok' version '6.6.1'
+    id 'eclipse'
+}
+
+group = 'guru.springframework'
+version = '0.0.1-SNAPSHOT'
+description = 'sfg-reactive-brewery'
+sourceCompatibility = '17'
+
+repositories {
+  mavenCentral()
+}
+
+dependencyManagement {
+  dependencies {
+    dependencySet(group: 'org.mapstruct', version: '1.5.3.Final') {
+      entry 'mapstruct'
+      entry 'mapstruct-processor'
+    }
+  }
+}
+
+dependencies {
+    api 'org.springframework.boot:spring-boot-starter-actuator'
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-data-jpa'
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    api 'org.projectlombok:lombok'
+    api 'org.mapstruct:mapstruct'
+    annotationProcessor 'org.mapstruct:mapstruct-processor'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'org.springframework.boot:spring-boot-devtools'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webflux'
+}
+
+tasks.named('test') {
+  useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs = [
+    '-Amapstruct.defaultComponentModel=spring'
+  ]
+  options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc) {
+  options.encoding = 'UTF-8'
+}
+
+eclipse {
+  classpath {
+    downloadSources = true
+    downloadJavadoc = true
+  }
+}
