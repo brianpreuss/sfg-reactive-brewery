@@ -1,8 +1,13 @@
 package guru.springframework.sfgrestbrewery.domain;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.UUID;
+
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.annotation.Version;
 
 import guru.springframework.sfgrestbrewery.web.model.BeerStyleEnum;
 import lombok.AllArgsConstructor;
@@ -17,16 +22,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// @Entity
 public class Beer {
-
-  // @Id
-  // @GeneratedValue(strategy = GenerationType.UUID)
-  // @Column(length = 36, columnDefinition = "varchar", updatable = false,
-  // nullable = false)
+  @Id
   private UUID id;
 
-  // @Version
+  @Version
   private Long version;
 
   private String beerName;
@@ -36,10 +36,9 @@ public class Beer {
   private Integer quantityOnHand;
   private BigDecimal price;
 
-  // @CreationTimestamp
-  // @Column(updatable = false)
-  private Timestamp createdDate;
+  @CreatedDate
+  private LocalDateTime createdDate;
 
-  // @UpdateTimestamp
-  private Timestamp lastModifiedDate;
+  @LastModifiedDate
+  private LocalDateTime lastModifiedDate;
 }
