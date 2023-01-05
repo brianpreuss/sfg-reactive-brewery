@@ -4,7 +4,7 @@
  */
 
 create table if not exists beer (
-    id uuid primary key,
+    id uuid default random_uuid() primary key,
     beer_name varchar(255),
     beer_style varchar(255),
     upc varchar(25),

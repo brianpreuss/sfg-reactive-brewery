@@ -1,18 +1,24 @@
 package guru.springframework.sfgrestbrewery.web.mappers;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
 import guru.springframework.sfgrestbrewery.domain.Beer;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
-import org.mapstruct.Mapper;
 
 /**
  * Created by jt on 2019-05-25.
  */
-@Mapper(uses = {DateMapper.class})
+@Mapper(uses = { DateMapper.class })
 public interface BeerMapper {
+  @Mapping(target = "lastUpdatedDate", ignore = true)
+  @Mapping(target = "quantityOnHand", ignore = true)
+  BeerDto beerToBeerDto(Beer beer);
 
-    BeerDto beerToBeerDto(Beer beer);
+  @Mapping(target = "lastUpdatedDate", ignore = true)
+  BeerDto beerToBeerDtoWithInventory(Beer beer);
 
-    BeerDto beerToBeerDtoWithInventory(Beer beer);
-
-    Beer beerDtoToBeer(BeerDto dto);
+  @Mapping(target = "lastModifiedDate", ignore = true)
+  @Mapping(target = "version", ignore = true)
+  Beer beerDtoToBeer(BeerDto dto);
 }

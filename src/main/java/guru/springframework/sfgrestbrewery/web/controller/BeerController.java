@@ -70,7 +70,9 @@ public class BeerController {
       showInventoryOnHand = false;
     }
 
-    return Mono.just(ResponseEntity.ok(beerService.getById(beerId, showInventoryOnHand)));
+    return beerService.getById(beerId, showInventoryOnHand)
+      .map(ResponseEntity::ok)
+      .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @GetMapping("beerUpc/{upc}")

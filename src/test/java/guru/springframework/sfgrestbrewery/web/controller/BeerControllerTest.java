@@ -22,6 +22,7 @@ import guru.springframework.sfgrestbrewery.services.BeerService;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import guru.springframework.sfgrestbrewery.web.model.BeerPagedList;
 import lombok.val;
+import reactor.core.publisher.Mono;
 
 @WebFluxTest(BeerController.class)
 class BeerControllerTest {
@@ -42,7 +43,7 @@ class BeerControllerTest {
 
   void testGetBeerById() {
     final val beerId = UUID.randomUUID();
-    given(beerService.getById(any(), any())).willReturn(validBeer);
+    given(beerService.getById(any(), any())).willReturn(Mono.just(validBeer));
     webTestClient.get()
       .uri("/api/v1/beer/{beerId}", beerId)
       .accept(MediaType.APPLICATION_JSON)

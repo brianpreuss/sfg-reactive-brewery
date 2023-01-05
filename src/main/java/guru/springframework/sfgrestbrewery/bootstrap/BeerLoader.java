@@ -3,6 +3,7 @@ package guru.springframework.sfgrestbrewery.bootstrap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Random;
+import java.util.UUID;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -52,6 +53,8 @@ public class BeerLoader implements CommandLineRunner {
   public static final String BEER_29_UPC = "0986442492927";
   public static final String BEER_30_UPC = "8670687641074";
 
+  public static final UUID BEER_1_UUID = UUID.randomUUID();
+
   private final BeerRepository beerRepository;
 
   @Override
@@ -74,6 +77,7 @@ public class BeerLoader implements CommandLineRunner {
             .upc(BEER_1_UPC)
             .price(new BigDecimal(BigInteger.valueOf(random.nextInt(10000)), 2))
             .quantityOnHand(random.nextInt(5000))
+            .id(BEER_1_UUID)
             .build()
         )
         .then(
