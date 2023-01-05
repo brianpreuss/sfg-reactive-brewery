@@ -56,10 +56,8 @@ public class BeerController {
       pageSize = DEFAULT_PAGE_SIZE;
     }
 
-    final var beerList = beerService
-      .listBeers(beerName, beerStyle, PageRequest.of(pageNumber, pageSize), showInventoryOnHand);
-
-    return Mono.just(ResponseEntity.ok(beerList));
+    return beerService.listBeers(beerName, beerStyle, PageRequest.of(pageNumber, pageSize), showInventoryOnHand)
+      .map(ResponseEntity::ok);
   }
 
   @GetMapping("beer/{beerId}")
@@ -77,7 +75,7 @@ public class BeerController {
 
   @GetMapping("beerUpc/{upc}")
   public Mono<ResponseEntity<BeerDto>> getBeerByUpc(@PathVariable("upc") final String upc) {
-    return Mono.just(ResponseEntity.ok(beerService.getByUpc(upc)));
+    return beerService.getByUpc(upc).map(ResponseEntity::ok).defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @PostMapping(path = "beer")

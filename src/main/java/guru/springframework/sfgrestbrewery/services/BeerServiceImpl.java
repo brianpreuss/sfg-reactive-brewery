@@ -1,13 +1,16 @@
 package guru.springframework.sfgrestbrewery.services;
 
-import java.util.List;
+import static org.springframework.data.relational.core.query.Criteria.where;
+import static org.springframework.data.relational.core.query.Query.empty;
+import static org.springframework.data.relational.core.query.Query.query;
+
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -19,71 +22,52 @@ import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import guru.springframework.sfgrestbrewery.web.model.BeerPagedList;
 import guru.springframework.sfgrestbrewery.web.model.BeerStyleEnum;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
  * Created by jt on 2019-04-20.
  */
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BeerServiceImpl implements BeerService {
   private final BeerRepository beerRepository;
   private final BeerMapper beerMapper;
+  private final R2dbcEntityTemplate template;
 
   @Cacheable(cacheNames = "beerListCache", condition = "#showInventoryOnHand == false ")
   @Override
-  public BeerPagedList listBeers(
+  public Mono<BeerPagedList> listBeers(
       final String beerName,
       final BeerStyleEnum beerStyle,
       final PageRequest pageRequest,
       final Boolean showInventoryOnHand) {
+    Query query = null;
 
-    BeerPagedList beerPagedList;
-    Page<Beer> beerPage;
-
-    if (!StringUtils.isEmpty(beerName) && !StringUtils.isEmpty(beerStyle)) {
+    if (StringUtils.hasLength(beerName) && beerStyle != null) {
       // search both
-      beerPage = new PageImpl<>(
-        List.of(new Beer(UUID.randomUUID(), 0L, beerName, beerStyle, beerName, null, null, null, null))
-      );
-      // beerRepository.findAllByBeerNameAndBeerStyle(beerName, beerStyle,
-      // pageRequest);
-    } else if (!StringUtils.isEmpty(beerName) && StringUtils.isEmpty(beerStyle)) {
+      query = query(where("beerName").is(beerName).and("beerStyle").is(beerStyle));
+    } else if (StringUtils.hasLength(beerName) && beerStyle == null) {
       // search beer_service name
-      beerPage = new PageImpl<>(
-        List.of(new Beer(UUID.randomUUID(), 1L, beerName, beerStyle, beerName, null, null, null, null))
-      );
-      // beerRepository.findAllByBeerName(beerName, pageRequest);
-    } else if (StringUtils.isEmpty(beerName) && !StringUtils.isEmpty(beerStyle)) {
+      query = query(where("beerName").is(beerName));
+    } else if (!StringUtils.hasLength(beerName) && beerStyle != null) {
       // search beer_service style
-      beerPage = new PageImpl<>(
-        List.of(new Beer(UUID.randomUUID(), 2L, beerName, beerStyle, beerName, null, null, null, null))
-      );
-      // beerRepository.findAllByBeerStyle(beerStyle, pageRequest);
+      query = query(where("beerStyle").is(beerStyle));
     } else {
-      beerPage = new PageImpl<>(
-        List.of(new Beer(UUID.randomUUID(), 3L, beerName, beerStyle, beerName, null, null, null, null))
-      );
-      // beerRepository.findAll(pageRequest);
+      query = empty();
     }
 
-    if (showInventoryOnHand) {
-      beerPagedList = new BeerPagedList(
-        beerPage.getContent().stream().map(beerMapper::beerToBeerDtoWithInventory).collect(Collectors.toList()),
-        PageRequest.of(beerPage.getPageable().getPageNumber(), beerPage.getPageable().getPageSize()),
-        beerPage.getTotalElements()
+    return template.select(Beer.class)
+      .matching(query.with(pageRequest))
+      .all()
+      .map(beerMapper::beerToBeerDto)
+      .collect(Collectors.toList())
+      .map(
+        beers -> new BeerPagedList(
+          beers,
+          PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize()),
+          beers.size()
+        )
       );
-    } else {
-      beerPagedList = new BeerPagedList(
-        beerPage.getContent().stream().map(beerMapper::beerToBeerDto).collect(Collectors.toList()),
-        PageRequest.of(beerPage.getPageable().getPageNumber(), beerPage.getPageable().getPageSize()),
-        beerPage.getTotalElements()
-      );
-    }
-
-    return beerPagedList;
   }
 
   @Cacheable(cacheNames = "beerCache", key = "#beerId", condition = "#showInventoryOnHand == false ")
@@ -114,8 +98,8 @@ public class BeerServiceImpl implements BeerService {
 
   @Cacheable(cacheNames = "beerUpcCache")
   @Override
-  public BeerDto getByUpc(final String upc) {
-    return beerMapper.beerToBeerDto(beerRepository.findByUpc(upc));
+  public Mono<BeerDto> getByUpc(final String upc) {
+    return beerRepository.findByUpc(upc).map(beerMapper::beerToBeerDto);
   }
 
   @Override

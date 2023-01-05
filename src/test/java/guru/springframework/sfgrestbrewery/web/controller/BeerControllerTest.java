@@ -57,7 +57,7 @@ class BeerControllerTest {
   @Test
   void testListBeers() {
     final val mockedBeerPagedList = new BeerPagedList(List.of(validBeer));
-    given(beerService.listBeers(any(), any(), any(), any())).willReturn(mockedBeerPagedList);
+    given(beerService.listBeers(any(), any(), any(), any())).willReturn(Mono.just(mockedBeerPagedList));
     webTestClient.get()
       .uri("/api/v1/beer")
       .accept(MediaType.APPLICATION_JSON)
@@ -70,7 +70,7 @@ class BeerControllerTest {
 
   @Test
   void testGetBeerByUpc() {
-    given(beerService.getByUpc(validBeer.getUpc())).willReturn(validBeer);
+    given(beerService.getByUpc(validBeer.getUpc())).willReturn(Mono.just(validBeer));
     webTestClient.get()
       .uri("/api/v1/beerUpc/{upc}", validBeer.getUpc())
       .accept(MediaType.APPLICATION_JSON)

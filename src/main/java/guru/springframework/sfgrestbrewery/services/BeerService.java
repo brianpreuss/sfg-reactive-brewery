@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
  * Created by jt on 2019-04-20.
  */
 public interface BeerService {
-  BeerPagedList listBeers(
+  Mono<BeerPagedList> listBeers(
       String beerName,
       BeerStyleEnum beerStyle,
       PageRequest pageRequest,
@@ -25,7 +25,7 @@ public interface BeerService {
 
   BeerDto updateBeer(UUID beerId, BeerDto beerDto);
 
-  BeerDto getByUpc(String upc);
+  Mono<BeerDto> getByUpc(String upc);
 
   void deleteBeerById(UUID beerId);
 }
