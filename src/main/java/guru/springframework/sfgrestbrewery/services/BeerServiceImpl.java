@@ -101,7 +101,7 @@ public class BeerServiceImpl implements BeerService {
   }
 
   @Override
-  public void deleteBeerById(final UUID beerId) {
-    beerRepository.deleteById(beerId);
+  public Mono<Void> deleteBeerById(final UUID beerId) {
+    return beerRepository.deleteById(beerId);
   }
 }

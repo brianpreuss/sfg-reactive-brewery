@@ -27,5 +27,5 @@ public interface BeerService {
 
   Mono<BeerDto> getByUpc(String upc);
 
-  void deleteBeerById(UUID beerId);
+  Mono<Void> deleteBeerById(UUID beerId);
 }

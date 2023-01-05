@@ -104,8 +104,10 @@ public class BeerController {
 
   @DeleteMapping("beer/{beerId}")
   public Mono<ResponseEntity<Void>> deleteBeerById(@PathVariable("beerId") final UUID beerId) {
-    beerService.deleteBeerById(beerId);
-
-    return Mono.just(ResponseEntity.noContent().build());
+    return beerService.getById(beerId, false)
+      .flatMap(
+        existingBeer -> beerService.deleteBeerById(beerId).then(Mono.just(ResponseEntity.noContent().<Void>build()))
+      )
+      .defaultIfEmpty(ResponseEntity.notFound().<Void>build());
   }
 }

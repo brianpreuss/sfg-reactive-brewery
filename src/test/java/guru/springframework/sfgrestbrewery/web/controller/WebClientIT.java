@@ -3,6 +3,7 @@ package guru.springframework.sfgrestbrewery.web.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -13,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import guru.springframework.sfgrestbrewery.bootstrap.BeerLoader;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
@@ -250,6 +252,76 @@ class WebClientIT {
           })
           .subscribe(savedDto -> {
             assertThat(savedDto.getBeerName()).isEqualTo("JTsUpdate");
+            countDownLatch.countDown();
+          });
+      });
+
+    countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+    assertThat(countDownLatch.getCount()).isZero();
+  }
+
+  @Test
+  void testUpdateBeerNotFound() throws InterruptedException {
+    final var countDownLatch = new CountDownLatch(2);
+
+    final var updatePayload = BeerDto.builder()
+      .beerName("JTsUpdate")
+      .beerStyle("PALE_ALE")
+      .upc("12345667")
+      .price(new BigDecimal("9.99"))
+      .build();
+
+    webClient.put()
+      .uri("/api/v1/beer/{uuid}", UUID.randomUUID())
+      .contentType(MediaType.APPLICATION_JSON)
+      .body(BodyInserters.fromValue(updatePayload))
+      .retrieve()
+      .toBodilessEntity()
+      .subscribe(responseEntity -> {
+      }, throwable -> {
+        if (throwable instanceof WebClientResponseException.NotFound) {
+          countDownLatch.countDown();
+        }
+      });
+
+    countDownLatch.countDown();
+
+    countDownLatch.await(1500, TimeUnit.MILLISECONDS);
+    assertThat(countDownLatch.getCount()).isZero();
+  }
+
+  @Test
+  void testDeleteBeer() throws InterruptedException {
+
+    final var countDownLatch = new CountDownLatch(3);
+
+    webClient.get()
+      .uri("/api/v1/beer")
+      .accept(MediaType.APPLICATION_JSON)
+      .retrieve()
+      .bodyToMono(BeerPagedList.class)
+      .publishOn(Schedulers.single())
+      .subscribe(pagedList -> {
+        countDownLatch.countDown();
+
+        final var beerDto = pagedList.getContent().get(0);
+
+        webClient.delete()
+          .uri("/api/v1/beer/" + beerDto.getId())
+          .retrieve()
+          .toBodilessEntity()
+          .flatMap(responseEntity -> {
+            countDownLatch.countDown();
+
+            return webClient.get()
+              .uri("/api/v1/beer/" + beerDto.getId())
+              .accept(MediaType.APPLICATION_JSON)
+              .retrieve()
+              .bodyToMono(BeerDto.class);
+          })
+          .subscribe(savedDto -> {
+
+          }, throwable -> {
             countDownLatch.countDown();
           });
       });
