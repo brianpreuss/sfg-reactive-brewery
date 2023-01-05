@@ -21,9 +21,9 @@ public interface BeerService {
 
   Mono<BeerDto> getById(UUID beerId, Boolean showInventoryOnHand);
 
-  BeerDto saveNewBeer(BeerDto beerDto);
+  Mono<BeerDto> saveNewBeer(BeerDto beerDto);
 
-  BeerDto updateBeer(UUID beerId, BeerDto beerDto);
+  Mono<BeerDto> updateBeer(UUID beerId, BeerDto beerDto);
 
   Mono<BeerDto> getByUpc(String upc);
 

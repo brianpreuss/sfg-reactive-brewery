@@ -2,6 +2,7 @@ package guru.springframework.sfgrestbrewery.web.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import guru.springframework.sfgrestbrewery.bootstrap.BeerLoader;
@@ -147,6 +149,110 @@ class WebClientIT {
 
       countDownLatch.countDown();
     });
+
+    countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+    assertThat(countDownLatch.getCount()).isZero();
+  }
+
+  @Test
+  void testSaveBeer() throws InterruptedException {
+
+    final var countDownLatch = new CountDownLatch(1);
+
+    final var beerDto = BeerDto.builder()
+      .beerName("JTs Beer")
+      .upc("1233455")
+      .beerStyle("PALE_ALE")
+      .price(new BigDecimal("8.99"))
+      .build();
+
+    final var beerResponseMono = webClient.post()
+      .uri("/api/v1/beer")
+      .accept(MediaType.APPLICATION_JSON)
+      .body(BodyInserters.fromValue(beerDto))
+      .retrieve()
+      .toBodilessEntity();
+
+    beerResponseMono.publishOn(Schedulers.parallel()).subscribe(responseEntity -> {
+
+      assertThat(responseEntity.getStatusCode().is2xxSuccessful());
+
+      countDownLatch.countDown();
+    });
+
+    countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+    assertThat(countDownLatch.getCount()).isZero();
+  }
+
+  @Test
+  void testSaveBeerBadRequest() throws InterruptedException {
+
+    final var countDownLatch = new CountDownLatch(1);
+
+    final var beerDto = BeerDto.builder().price(new BigDecimal("8.99")).build();
+
+    final var beerResponseMono = webClient.post()
+      .uri("/api/v1/beer")
+      .accept(MediaType.APPLICATION_JSON)
+      .body(BodyInserters.fromValue(beerDto))
+      .retrieve()
+      .toBodilessEntity();
+
+    beerResponseMono.publishOn(Schedulers.parallel()).doOnError(throwable -> {
+      countDownLatch.countDown();
+    }).subscribe(responseEntity -> {
+
+    });
+
+    countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+    assertThat(countDownLatch.getCount()).isZero();
+  }
+
+  @Test
+  void testUpdateBeer() throws InterruptedException {
+
+    final var countDownLatch = new CountDownLatch(3);
+
+    webClient.get()
+      .uri("/api/v1/beer")
+      .accept(MediaType.APPLICATION_JSON)
+      .retrieve()
+      .bodyToMono(BeerPagedList.class)
+      .publishOn(Schedulers.single())
+      .subscribe(pagedList -> {
+        countDownLatch.countDown();
+
+        // get existing beer
+        final var beerDto = pagedList.getContent().get(0);
+
+        final var updatePayload = BeerDto.builder()
+          .beerName("JTsUpdate")
+          .beerStyle(beerDto.getBeerStyle())
+          .upc(beerDto.getUpc())
+          .price(beerDto.getPrice())
+          .build();
+
+        // update existing beer
+        webClient.put()
+          .uri("/api/v1/beer/" + beerDto.getId())
+          .contentType(MediaType.APPLICATION_JSON)
+          .body(BodyInserters.fromValue(updatePayload))
+          .retrieve()
+          .toBodilessEntity()
+          .flatMap(responseEntity -> {
+            // get and verify update
+            countDownLatch.countDown();
+            return webClient.get()
+              .uri("/api/v1/beer/" + beerDto.getId())
+              .accept(MediaType.APPLICATION_JSON)
+              .retrieve()
+              .bodyToMono(BeerDto.class);
+          })
+          .subscribe(savedDto -> {
+            assertThat(savedDto.getBeerName()).isEqualTo("JTsUpdate");
+            countDownLatch.countDown();
+          });
+      });
 
     countDownLatch.await(1000, TimeUnit.MILLISECONDS);
     assertThat(countDownLatch.getCount()).isZero();

@@ -80,23 +80,26 @@ public class BeerController {
 
   @PostMapping(path = "beer")
   public Mono<ResponseEntity<Void>> saveNewBeer(@RequestBody @Validated final BeerDto beerDto) {
-    final var savedBeer = beerService.saveNewBeer(beerDto);
-
-    return Mono.just(
-      ResponseEntity.created(
-        UriComponentsBuilder.fromHttpUrl("http://api.springframework.guru/api/v1/beer/" + savedBeer.getId().toString())
+    return beerService.saveNewBeer(beerDto)
+      .map(
+        savedBeer -> ResponseEntity
+          .created(
+            UriComponentsBuilder
+              .fromHttpUrl("http://api.springframework.guru/api/v1/beer/" + savedBeer.getId().toString())
+              .build()
+              .toUri()
+          )
           .build()
-          .toUri()
-      ).build()
-    );
+      );
   }
 
   @PutMapping("beer/{beerId}")
-  public Mono<ResponseEntity<BeerDto>> updateBeerById(
+  public Mono<ResponseEntity<Void>> updateBeerById(
       @PathVariable("beerId") final UUID beerId,
       @RequestBody @Validated final BeerDto beerDto) {
-    beerService.updateBeer(beerId, beerDto);
-    return Mono.just(ResponseEntity.noContent().build());
+    return beerService.updateBeer(beerId, beerDto)
+      .map(updatedBeer -> ResponseEntity.noContent().<Void>build())
+      .defaultIfEmpty(ResponseEntity.notFound().<Void>build());
   }
 
   @DeleteMapping("beer/{beerId}")
