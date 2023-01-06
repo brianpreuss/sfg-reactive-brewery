@@ -13,10 +13,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 import guru.springframework.sfgrestbrewery.services.BeerService;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class BeerHandlerV2 {
     private final BeerService beerService;
     private final Validator validator;
@@ -59,5 +61,14 @@ public class BeerHandlerV2 {
         if (errors.hasErrors()) {
             throw new ServerWebInputException(errors.toString());
         }
+    }
+
+    public Mono<ServerResponse> updateBeer(final ServerRequest request) {
+        return request
+            .bodyToMono(BeerDto.class)
+            .doOnNext(this::validate)
+            .flatMap(beerDto -> beerService.updateBeer(UUID.fromString(request.pathVariable("beerId")), beerDto))
+            .doOnNext(savedBeerDto -> log.debug("Saved Beer Id: {}", savedBeerDto.getId()))
+            .flatMap(savedBeerDto -> ServerResponse.noContent().build());
     }
 }

@@ -198,4 +198,49 @@ class WebClientV2IT {
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
         assertThat(countDownLatch.getCount()).isZero();
     }
+
+    @Test
+    void testUpdateBeer() throws InterruptedException {
+        final var newBeerName = "JTs Beer";
+        final var beerId = BeerLoader.BEER_1_UUID;
+        final var countDownLatch = new CountDownLatch(2);
+
+        webClient
+            .put()
+            .uri(BeerRouterConfig.BEER_V2_URL_ID, beerId)
+            .accept(MediaType.APPLICATION_JSON)
+            .body(BodyInserters
+                .fromValue(BeerDto
+                    .builder()
+                    .beerName(newBeerName)
+                    .upc("1233455")
+                    .beerStyle("PALE_ALE")
+                    .price(new BigDecimal("8.99"))
+                    .build()))
+            .retrieve()
+            .toBodilessEntity()
+            .subscribe(responseEntity -> {
+                assertThat(responseEntity.getStatusCode().is2xxSuccessful());
+                countDownLatch.countDown();
+            });
+
+        // wait for update thread to complete
+        countDownLatch.await(500, TimeUnit.MILLISECONDS);
+
+        webClient
+            .get()
+            .uri(BeerRouterConfig.BEER_V2_URL_ID, beerId)
+            .accept(MediaType.APPLICATION_JSON)
+            .retrieve()
+            .bodyToMono(BeerDto.class)
+            .subscribe(beer -> {
+                assertThat(beer).isNotNull();
+                assertThat(beer.getBeerName()).isNotNull();
+                assertThat(beer.getBeerName()).isEqualTo(newBeerName);
+                countDownLatch.countDown();
+            });
+
+        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertThat(countDownLatch.getCount()).isZero();
+    }
 }
