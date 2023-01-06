@@ -13,19 +13,21 @@ import reactor.core.publisher.Mono;
  * Created by jt on 2019-04-20.
  */
 public interface BeerService {
-  Mono<BeerPagedList> listBeers(
-      String beerName,
-      BeerStyleEnum beerStyle,
-      PageRequest pageRequest,
-      Boolean showInventoryOnHand);
+    Mono<BeerPagedList> listBeers(
+            String beerName,
+            BeerStyleEnum beerStyle,
+            PageRequest pageRequest,
+            Boolean showInventoryOnHand);
 
-  Mono<BeerDto> getById(UUID beerId, Boolean showInventoryOnHand);
+    Mono<BeerDto> getById(UUID beerId, Boolean showInventoryOnHand);
 
-  Mono<BeerDto> saveNewBeer(BeerDto beerDto);
+    Mono<BeerDto> saveNewBeer(BeerDto beerDto);
 
-  Mono<BeerDto> updateBeer(UUID beerId, BeerDto beerDto);
+    Mono<BeerDto> saveNewBeerMono(Mono<BeerDto> beerDto);
 
-  Mono<BeerDto> getByUpc(String upc);
+    Mono<BeerDto> updateBeer(UUID beerId, BeerDto beerDto);
 
-  Mono<Void> deleteBeerById(UUID beerId);
+    Mono<BeerDto> getByUpc(String upc);
+
+    Mono<Void> deleteBeerById(UUID beerId);
 }

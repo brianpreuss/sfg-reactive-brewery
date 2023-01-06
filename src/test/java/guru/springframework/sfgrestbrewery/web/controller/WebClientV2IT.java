@@ -4,6 +4,7 @@ import static guru.springframework.sfgrestbrewery.web.functional.BeerRouterConfi
 import static guru.springframework.sfgrestbrewery.web.functional.BeerRouterConfig.BEER_V2_URL_UPC;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -11,13 +12,19 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import guru.springframework.sfgrestbrewery.bootstrap.BeerLoader;
+import guru.springframework.sfgrestbrewery.web.functional.BeerRouterConfig;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
 
 /**
@@ -118,6 +125,75 @@ class WebClientV2IT {
 
         }, throwable -> {
             countDownLatch.countDown();
+        });
+
+        countDownLatch.await(2000, TimeUnit.MILLISECONDS);
+        assertThat(countDownLatch.getCount()).isZero();
+    }
+
+    @Test
+    void testSaveBeer() throws InterruptedException {
+
+        final var countDownLatch = new CountDownLatch(1);
+
+        final var beerDto = BeerDto
+            .builder()
+            .beerName("JTs Beer")
+            .upc("1233455")
+            .beerStyle("PALE_ALE")
+            .price(new BigDecimal("8.99"))
+            .build();
+
+        final var beerResponseMono = webClient
+            .post()
+            .uri(BeerRouterConfig.BEER_V2_URL)
+            .accept(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(beerDto))
+            .retrieve()
+            .toBodilessEntity();
+
+        beerResponseMono.publishOn(Schedulers.parallel()).subscribe(responseEntity -> {
+
+            assertThat(responseEntity.getStatusCode().is2xxSuccessful());
+
+            countDownLatch.countDown();
+        });
+
+        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertThat(countDownLatch.getCount()).isZero();
+    }
+
+    @Test
+    void testSaveBeerBadRequest() throws InterruptedException {
+
+        final var countDownLatch = new CountDownLatch(1);
+
+        final var beerDto = BeerDto
+            .builder()
+            .price(new BigDecimal("8.99"))
+            .build();
+
+        final var beerResponseMono = webClient
+            .post()
+            .uri(BeerRouterConfig.BEER_V2_URL)
+            .accept(MediaType.APPLICATION_JSON)
+            .body(BodyInserters.fromValue(beerDto))
+            .retrieve()
+            .toBodilessEntity();
+
+        beerResponseMono.subscribe(responseEntity -> {
+
+        }, throwable -> {
+            if ("org.springframework.web.reactive.function.client.WebClientResponseException$BadRequest"
+                .equals(throwable
+                    .getClass()
+                    .getName())) {
+                final var ex = (WebClientResponseException) throwable;
+
+                if (HttpStatus.BAD_REQUEST.equals(ex.getStatusCode())) {
+                    countDownLatch.countDown();
+                }
+            }
         });
 
         countDownLatch.await(2000, TimeUnit.MILLISECONDS);
