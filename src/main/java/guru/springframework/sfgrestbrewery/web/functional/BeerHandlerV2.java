@@ -11,6 +11,7 @@ import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import guru.springframework.sfgrestbrewery.services.BeerService;
+import guru.springframework.sfgrestbrewery.web.controller.NotFoundException;
 import guru.springframework.sfgrestbrewery.web.model.BeerDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,5 +72,13 @@ public class BeerHandlerV2 {
             .doOnNext(savedBeerDto -> log.debug("Saved Beer Id: {}", savedBeerDto.getId()))
             .flatMap(savedBeerDto -> ServerResponse.noContent().build())
             .switchIfEmpty(ServerResponse.notFound().build());
+    }
+
+    public Mono<ServerResponse> deleteBeer(final ServerRequest request) {
+        final var beerId = UUID.fromString(request.pathVariable("beerId"));
+        return beerService
+            .deleteBeerById(beerId)
+            .flatMap(voidMono -> ServerResponse.noContent().build())
+            .onErrorResume(NotFoundException.class, e -> ServerResponse.notFound().build());
     }
 }

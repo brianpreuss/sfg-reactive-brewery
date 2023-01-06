@@ -3,6 +3,7 @@ package guru.springframework.sfgrestbrewery.web.controller;
 import static guru.springframework.sfgrestbrewery.web.functional.BeerRouterConfig.BEER_V2_URL_ID;
 import static guru.springframework.sfgrestbrewery.web.functional.BeerRouterConfig.BEER_V2_URL_UPC;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -271,6 +272,54 @@ class WebClientV2IT {
             });
 
         countDownLatch.await(1000, TimeUnit.MILLISECONDS);
-        assertThat(countDownLatch.getCount()).isEqualTo(0);
+        assertThat(countDownLatch.getCount()).isZero();
+    }
+
+    @Test
+    void testDeleteBeer() {
+        final var beerId = BeerLoader.BEER_3_UUID;
+        final var countDownLatch = new CountDownLatch(1);
+
+        webClient
+            .delete()
+            .uri(BEER_V2_URL_ID, beerId)
+            .retrieve()
+            .toBodilessEntity()
+            .flatMap(responseEntity -> {
+                countDownLatch.countDown();
+
+                return webClient
+                    .get()
+                    .uri(BEER_V2_URL_ID, beerId)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(BeerDto.class);
+            })
+            .subscribe(savedDto -> {
+
+            }, throwable -> {
+                countDownLatch.countDown();
+            });
+    }
+
+    @Test
+    void testDeleteBeerNotFound() {
+        final var beerId = BeerLoader.BEER_4_UUID;
+
+        webClient
+            .delete()
+            .uri(BEER_V2_URL_ID, beerId)
+            .retrieve()
+            .toBodilessEntity()
+            .block();
+
+        assertThrows(WebClientResponseException.NotFound.class, () -> {
+            webClient
+                .delete()
+                .uri(BEER_V2_URL_ID, beerId)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+        });
     }
 }
