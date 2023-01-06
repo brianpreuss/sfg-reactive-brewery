@@ -69,6 +69,7 @@ public class BeerHandlerV2 {
             .doOnNext(this::validate)
             .flatMap(beerDto -> beerService.updateBeer(UUID.fromString(request.pathVariable("beerId")), beerDto))
             .doOnNext(savedBeerDto -> log.debug("Saved Beer Id: {}", savedBeerDto.getId()))
-            .flatMap(savedBeerDto -> ServerResponse.noContent().build());
+            .flatMap(savedBeerDto -> ServerResponse.noContent().build())
+            .switchIfEmpty(ServerResponse.notFound().build());
     }
 }

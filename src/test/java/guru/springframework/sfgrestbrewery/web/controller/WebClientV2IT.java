@@ -243,4 +243,34 @@ class WebClientV2IT {
         countDownLatch.await(1000, TimeUnit.MILLISECONDS);
         assertThat(countDownLatch.getCount()).isZero();
     }
+
+    @Test
+    void testUpdateBeerNotFound() throws InterruptedException {
+        final var newBeerName = "JTs Beer";
+        final var beerId = 999;
+        final var countDownLatch = new CountDownLatch(1);
+
+        webClient
+            .put()
+            .uri(BeerRouterConfig.BEER_V2_URL_ID, beerId)
+            .accept(MediaType.APPLICATION_JSON)
+            .body(BodyInserters
+                .fromValue(BeerDto
+                    .builder()
+                    .beerName(newBeerName)
+                    .upc("1233455")
+                    .beerStyle("PALE_ALE")
+                    .price(new BigDecimal("8.99"))
+                    .build()))
+            .retrieve()
+            .toBodilessEntity()
+            .subscribe(responseEntity -> {
+                assertThat(responseEntity.getStatusCode().is2xxSuccessful());
+            }, throwable -> {
+                countDownLatch.countDown();
+            });
+
+        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertThat(countDownLatch.getCount()).isEqualTo(0);
+    }
 }
