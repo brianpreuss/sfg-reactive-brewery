@@ -3,8 +3,11 @@ package guru.springframework.sfgrestbrewery.web.functional;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Validator;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.server.ServerWebInputException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import guru.springframework.sfgrestbrewery.services.BeerService;
@@ -16,6 +19,7 @@ import reactor.core.publisher.Mono;
 @RequiredArgsConstructor
 public class BeerHandlerV2 {
     private final BeerService beerService;
+    private final Validator validator;
 
     public Mono<ServerResponse> getBeerById(final ServerRequest request) {
         final var beerId = UUID.fromString(request.pathVariable("beerId"));
@@ -39,12 +43,21 @@ public class BeerHandlerV2 {
     }
 
     public Mono<ServerResponse> saveNewBeer(final ServerRequest request) {
-        final Mono<BeerDto> beerDtoMono = request.bodyToMono(BeerDto.class);
+        final var beerDtoMono = request.bodyToMono(BeerDto.class).doOnNext(this::validate);
 
         return beerService
             .saveNewBeerMono(beerDtoMono)
             .flatMap(beerDto -> ServerResponse
                 .created(UriComponentsBuilder.fromPath(BeerRouterConfig.BEER_V2_URL_ID).build(beerDto.getId()))
                 .build());
+    }
+
+    private void validate(final BeerDto beerDto) {
+        final var errors = new BeanPropertyBindingResult(beerDto, "beerDto");
+        validator.validate(beerDto, errors);
+
+        if (errors.hasErrors()) {
+            throw new ServerWebInputException(errors.toString());
+        }
     }
 }
